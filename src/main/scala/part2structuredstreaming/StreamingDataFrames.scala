@@ -1,78 +1,50 @@
 package part2structuredstreaming
 
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import common.stocksSchema
 import org.apache.spark.sql.functions._
-import common._
-import org.apache.spark.sql.streaming.Trigger
-import scala.concurrent.duration._
+import org.apache.spark.sql.streaming.StreamingQuery
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object StreamingDataFrames {
 
+  // Step 1: Create a spark session -
   val spark = SparkSession.builder()
-    .appName("Our first streams")
-    .master("local[2]")
+    .appName("Our First Streams")
+    .master("local[*]")
     .getOrCreate()
 
   def readFromSocket() = {
-    // reading a DF
-    val lines: DataFrame = spark.readStream
-      .format("socket")
+    // Dataframes can also be streaming dataframes
+    val lines: DataFrame = spark.readStream.format("socket")
       .option("host", "localhost")
-      .option("port", 12345)
+      .option("port", "12345")
       .load()
 
-    // transformation
-    val shortLines: DataFrame = lines.filter(length(col("value")) <= 5)
+    val shortLines = lines.where(length(col("value")) <= 10)
 
-    // tell between a static vs a streaming DF
+    // How to tell if a data is static of streaming
     println(shortLines.isStreaming)
 
-    // consuming a DF
-    val query = shortLines.writeStream
+    // Defining A sink and starting the sink
+    val query: StreamingQuery = shortLines.writeStream
       .format("console")
       .outputMode("append")
       .start()
 
-    // wait for the stream to finish
     query.awaitTermination()
   }
 
-  def readFromFiles() = {
-    val stocksDF: DataFrame = spark.readStream
+  def readFromFile() = {
+    val stocksDF = spark.readStream
       .format("csv")
       .option("header", "false")
       .option("dateFormat", "MMM d yyyy")
       .schema(stocksSchema)
-      .load("src/main/resources/data/stocks")
-
-    stocksDF.writeStream
-      .format("console")
-      .outputMode("append")
-      .start()
-      .awaitTermination()
-  }
-
-  def demoTriggers() = {
-    val lines: DataFrame = spark.readStream
-      .format("socket")
-      .option("host", "localhost")
-      .option("port", 12345)
-      .load()
-
-    // write the lines DF at a certain trigger
-    lines.writeStream
-      .format("console")
-      .outputMode("append")
-      .trigger(
-        // Trigger.ProcessingTime(2.seconds) // every 2 seconds run the query
-        // Trigger.Once() // single batch, then terminate
-        Trigger.Continuous(2.seconds) // experimental, every 2 seconds create a batch with whatever you have
-      )
-      .start()
-      .awaitTermination()
+      .load("src/main/resources/stocks")
   }
 
   def main(args: Array[String]): Unit = {
-    demoTriggers()
+    readFromSocket()
   }
+
 }
