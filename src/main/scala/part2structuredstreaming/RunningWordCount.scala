@@ -1,6 +1,5 @@
 package part2structuredstreaming
 
-import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object RunningWordCount extends App {
@@ -9,6 +8,9 @@ object RunningWordCount extends App {
     .appName("Running Word Count")
     .master("local[*]")
     .getOrCreate()
+
+  // Importing implicits for encoders
+  import spark.implicits._
 
   // For avoiding a lot of extra logs
   spark.sparkContext.setLogLevel("WARN")
@@ -21,11 +23,13 @@ object RunningWordCount extends App {
     .load()
 
   // Transformations
-  val transformedDF: DataFrame = streamingSourceDF.filter(length(col("value")) <= 10)
+  val transformedDF: DataFrame = streamingSourceDF.as[String]
+    .flatMap(_.split(" "))
+    .groupBy("value").count
 
-  // Defining Stream Output and Starting the stream
   transformedDF.writeStream
-    .outputMode("complete")
     .format("console")
+    .outputMode("complete")
     .start().awaitTermination()
+
 }
