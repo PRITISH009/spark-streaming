@@ -41,10 +41,17 @@ object StreamingDataFrames {
       .option("dateFormat", "MMM d yyyy")
       .schema(stocksSchema)
       .load("src/main/resources/stocks")
+
+
+    stocksDF.writeStream
+      .format("console")
+      .outputMode("append")
+      .start()
+      .awaitTermination()
   }
 
   def main(args: Array[String]): Unit = {
-    readFromSocket()
+    readFromFile()
   }
 
 }
