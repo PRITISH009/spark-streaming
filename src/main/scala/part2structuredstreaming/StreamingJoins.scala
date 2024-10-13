@@ -43,7 +43,7 @@ object StreamingJoins extends App {
     // Since Spark2.3 we have stream vs stream joins
 
     val streamedBandsGuitaristsDF = streamedBandsDF.join(guitarPlayers,
-      guitarPlayers.col("band") === streamedBandsDF.col("id"), "inner")
+      guitarPlayers.col("band") === streamedBandsDF.col("id"), "left")  // inner by default
 
     streamedBandsGuitaristsDF.writeStream.format("console")
       .outputMode("append") // append is supported for joins (with some restrictions)
@@ -83,6 +83,6 @@ object StreamingJoins extends App {
 
   }
 
-  //joinStreamWithStatic()
-  joinStreamWithStream()
+  joinStreamWithStatic()
+//  joinStreamWithStream()
 }
